@@ -81,4 +81,20 @@ def generate_receipt(customer_name, services, total_amount, output_path, address
         ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
         ('FONTSIZE', (0, 0), (-1, 0), 14),
         ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
-        ('BACKGROUND', (0, 1), (-1, -2), colors.whitesmo
+        ('BACKGROUND', (0, 1), (-1, -2), colors.whitesmoke),
+        ('TEXTCOLOR', (0, 1), (-1, -2), colors.black),
+        ('FONTNAME', (0, 1), (-1, -2), 'Helvetica'),
+        ('FONTSIZE', (0, 1), (-1, -2), 12),
+        ('GRID', (0, 0), (-1, -1), 1, ACCENT_COLOR),
+        ('ALIGN', (1, 1), (-1, -1), 'RIGHT'),
+        ('FONTNAME', (0, -1), (-1, -1), 'Helvetica-Bold'),
+        ('BACKGROUND', (0, -1), (-1, -1), ACCENT_COLOR),
+        ('TEXTCOLOR', (0, -1), (-1, -1), colors.whitesmoke),
+        ('FONTSIZE', (0, -1), (-1, -1), 14),
+    ]))
+    elements.append(table)
+    elements.append(Spacer(1, 30))
+    # Friendly footer
+    elements.append(Paragraph("<b>Thank you for choosing PawBuddy!</b>", normal_center))
+    elements.append(Paragraph("We hope to see you and your pet again soon!", normal_center))
+    doc.build(elements) 
