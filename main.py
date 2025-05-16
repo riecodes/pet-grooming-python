@@ -205,7 +205,13 @@ class PawBuddyApp(ctk.CTk):
                 self.customer_name.get(),
                 list(self.selected_services),
                 self.total_amount,
-                filename
+                filename,
+                address=self.customer_address.get(),
+                phone=self.customer_phone.get(),
+                pet_name=self.pet_name.get(),
+                pet_type=self.pet_type.get() if hasattr(self.pet_type, 'get') else self.pet_type,
+                breed=self.pet_breed.get(),
+                num_pets=self.pet_count.get()
             )
             messagebox.showinfo("Success", f"Receipt generated successfully!\nSaved as: {filename}")
         except Exception as e:
