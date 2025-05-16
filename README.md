@@ -19,6 +19,10 @@ A Python-based pet grooming services management system with a Tkinter GUI, MySQL
 ## Installation
 
 1. Clone or download this repository
+   ```bash
+   git clone https://github.com/riecodes/pet-grooming-python.git
+   cd file-sharing-app
+   ```
 2. Install the required Python packages:
    ```bash
    pip install -r requirements.txt
