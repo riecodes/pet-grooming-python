@@ -921,32 +921,147 @@ class PawBuddyApp(ctk.CTk):
         self.validate_reservation_fields()  # Validate fields after service selection changes
 
     def generate_receipt(self):
-        if not self.selected_services:
-            messagebox.showwarning("Warning", "Please select at least one service")
-            return
-        if not self.customer_name.get():
-            messagebox.showwarning("Warning", "Please enter customer name")
-            return
-        if not os.path.exists("receipts"):
-            os.makedirs("receipts")
-        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        filename = f"receipts/receipt_{timestamp}.pdf"
+        # Create a dialog window
+        dialog = ctk.CTkToplevel(self)
+        dialog.title("Select Reservation")
+        dialog.geometry("600x400")
+        dialog.grab_set()  # Make dialog modal
+
+        # Create a frame for the dropdown
+        frame = ctk.CTkFrame(dialog)
+        frame.pack(fill="both", expand=True, padx=20, pady=20)
+
+        # Add a label
+        ctk.CTkLabel(
+            frame,
+            text="Select a reservation to generate receipt:",
+            font=("Segoe UI", 16, "bold")
+        ).pack(pady=(0, 20))
+
+        # Create a combobox for reservations
+        reservation_var = tk.StringVar()
+        reservation_combo = ttk.Combobox(
+            frame,
+            textvariable=reservation_var,
+            state="readonly",
+            font=("Segoe UI", 12),
+            width=50
+        )
+        reservation_combo.pack(pady=(0, 20))
+
+        # Load reservations into combobox
         try:
-            generate_receipt(
-                self.customer_name.get(),
-                list(self.selected_services),
-                self.total_amount,
-                filename,
-                address=self.customer_address.get(),
-                phone=self.customer_phone.get(),
-                pet_name=self.pet_name.get(),
-                pet_type=self.pet_type.get() if hasattr(self.pet_type, 'get') else self.pet_type,
-                breed=self.pet_breed.get(),
-                num_pets=self.pet_count.get()
-            )
-            messagebox.showinfo("Success", f"Receipt generated successfully!\nSaved as: {filename}")
-        except Exception as e:
-            messagebox.showerror("Error", f"Error generating receipt: {str(e)}")
+            connection = create_connection()
+            if connection:
+                cursor = connection.cursor()
+                cursor.execute("""
+                    SELECT b.id, c.name, p.name, b.booking_date, b.total_amount
+                    FROM bookings b
+                    JOIN customers c ON b.customer_id = c.id
+                    JOIN pets p ON b.pet_id = p.id
+                    ORDER BY b.booking_date DESC
+                """)
+                
+                reservations = []
+                for row in cursor.fetchall():
+                    booking_id, customer_name, pet_name, booking_date, total = row
+                    display_text = f"ID: {booking_id} - {customer_name} ({pet_name}) - {booking_date.strftime('%Y-%m-%d %H:%M')} - P{total:.2f}"
+                    reservations.append((booking_id, display_text))
+                
+                reservation_combo['values'] = [r[1] for r in reservations]
+                
+                if reservations:
+                    reservation_combo.set(reservations[0][1])
+                
+                cursor.close()
+                connection.close()
+        except mysql.connector.Error as err:
+            messagebox.showerror("Database Error", f"Error loading reservations: {err}")
+            dialog.destroy()
+            return
+
+        def generate_selected_receipt():
+            selected = reservation_var.get()
+            if not selected:
+                messagebox.showwarning("Warning", "Please select a reservation")
+                return
+
+            # Extract booking ID from the selected text
+            booking_id = int(selected.split(" - ")[0].split(": ")[1])
+
+            try:
+                connection = create_connection()
+                if connection:
+                    cursor = connection.cursor()
+                    
+                    # Get booking details
+                    cursor.execute("""
+                        SELECT c.name, c.phone, c.address, p.name, p.breed, p.num_pets, b.total_amount
+                        FROM bookings b
+                        JOIN customers c ON b.customer_id = c.id
+                        JOIN pets p ON b.pet_id = p.id
+                        WHERE b.id = %s
+                    """, (booking_id,))
+                    
+                    booking_data = cursor.fetchone()
+                    if not booking_data:
+                        messagebox.showerror("Error", "Booking not found")
+                        return
+                    
+                    customer_name, phone, address, pet_name, breed, num_pets, total_amount = booking_data
+                    
+                    # Get services for this booking
+                    cursor.execute("""
+                        SELECT s.name, bs.price
+                        FROM booking_services bs
+                        JOIN services s ON bs.service_id = s.id
+                        WHERE bs.booking_id = %s
+                    """, (booking_id,))
+                    
+                    services = cursor.fetchall()
+                    
+                    if not os.path.exists("receipts"):
+                        os.makedirs("receipts")
+                    
+                    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+                    filename = f"receipts/receipt_{timestamp}.pdf"
+                    
+                    generate_receipt(
+                        customer_name,
+                        services,
+                        total_amount,
+                        filename,
+                        address=address,
+                        phone=phone,
+                        pet_name=pet_name,
+                        pet_type=breed,
+                        breed=breed,
+                        num_pets=num_pets
+                    )
+                    
+                    messagebox.showinfo("Success", f"Receipt generated successfully!\nSaved as: {filename}")
+                    dialog.destroy()
+                    
+            except mysql.connector.Error as err:
+                messagebox.showerror("Database Error", f"Error generating receipt: {err}")
+            except Exception as e:
+                messagebox.showerror("Error", f"Error generating receipt: {str(e)}")
+            finally:
+                if connection.is_connected():
+                    cursor.close()
+                    connection.close()
+
+        # Add generate button
+        ctk.CTkButton(
+            frame,
+            text="Generate Receipt",
+            corner_radius=20,
+            fg_color="#f7b267",
+            hover_color="#f9c784",
+            text_color="white",
+            command=generate_selected_receipt,
+            height=40
+        ).pack(pady=(20, 0))
 
 if __name__ == "__main__":
     app = PawBuddyApp()
