@@ -33,7 +33,7 @@ def create_database():
                 id INT AUTO_INCREMENT PRIMARY KEY,
                 name VARCHAR(100) NOT NULL,
                 phone VARCHAR(20),
-                email VARCHAR(100),
+                address VARCHAR(255),
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )
         """)
@@ -45,7 +45,7 @@ def create_database():
                 customer_id INT,
                 name VARCHAR(100) NOT NULL,
                 breed VARCHAR(100),
-                age INT,
+                num_pets INT DEFAULT 1,
                 FOREIGN KEY (customer_id) REFERENCES customers(id)
             )
         """)
